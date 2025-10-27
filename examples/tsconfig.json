@@ -23,29 +23,17 @@
     "noImplicitReturns": true,
     "noImplicitOverride": true,
     
-    /* Types */
-    "declaration": true,
-    "declarationMap": true,
-    "emitDeclarationOnly": false,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    
     /* Path mapping */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "pulse-framework": ["../src/index.ts"]
     },
     
     /* Skip type checking on libraries */
     "skipLibCheck": true
   },
   "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts",
-    "**/*.spec.ts"
+    "src/**/*",
+    "*.ts"
   ]
 }

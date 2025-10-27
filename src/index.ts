@@ -7,8 +7,10 @@ export * from './core'
 export * from './reactivity'
 export * from './dom'
 export * from './utils'
+export * from './render'
 export type * from './types'
 
 // API par défaut
 export { createApp, PulseApp } from './core'
-export { signal, computed, effect, batch } from './reactivity'
+export { signal, computed, effect, batch, bindEffectToElement } from './reactivity'
+export { render, h, fragment } from './render'

@@ -3,6 +3,12 @@ import type { Signal, Subscriber, Unsubscribe } from '../types'
 let currentEffect: (() => void) | null = null
 const effectStack: (() => void)[] = []
 
+// Gestion de la mémoire pour éviter les fuites
+const nodeBindings = new WeakMap<Element, Set<() => void>>()
+const cleanupRegistry = new FinalizationRegistry((cleanup: () => void) => {
+  cleanup()
+})
+
 /**
  * Crée un signal réactif
  */
@@ -167,4 +173,73 @@ export function effect(effectFn: () => void | (() => void)) {
  */
 export function batch(fn: () => void): void {
   fn()
+}
+
+/**
+ * Lie un effet à un élément DOM avec gestion automatique de la mémoire
+ */
+export function bindEffectToElement(
+  element: Element,
+  effectFn: () => void | (() => void)
+): () => void {
+  const elementRef = new WeakRef(element)
+  let cleanup: (() => void) | null = null
+  let isActive = true
+
+  function runEffect(): void {
+    const el = elementRef.deref()
+    if (!el || !isActive) {
+      // L'élément a été collecté ou l'effet désactivé
+      return
+    }
+
+    // Nettoyer l'effet précédent
+    if (cleanup) {
+      cleanup()
+      cleanup = null
+    }
+
+    // Exécuter l'effet
+    const previousEffect = currentEffect
+    currentEffect = runEffect
+    effectStack.push(runEffect)
+
+    try {
+      const result = effectFn()
+      if (typeof result === 'function') {
+        cleanup = result
+      }
+    } finally {
+      effectStack.pop()
+      currentEffect = previousEffect
+    }
+  }
+
+  function destroy(): void {
+    isActive = false
+    if (cleanup) {
+      cleanup()
+      cleanup = null
+    }
+    
+    // Retirer ce binding de l'élément s'il existe encore
+    const el = elementRef.deref()
+    if (el && nodeBindings.has(el)) {
+      nodeBindings.get(el)?.delete(runEffect)
+    }
+  }
+
+  // Enregistrer ce binding sur l'élément
+  if (!nodeBindings.has(element)) {
+    nodeBindings.set(element, new Set())
+  }
+  nodeBindings.get(element)!.add(runEffect)
+
+  // Enregistrer le nettoyage automatique
+  cleanupRegistry.register(element, destroy)
+
+  // Exécuter l'effet immédiatement
+  runEffect()
+
+  return destroy
 }

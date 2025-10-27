@@ -7,7 +7,7 @@ import type {
   ListBinding,
   AttributeValue 
 } from '../types'
-import { effect } from '../reactivity'
+import { effect, bindEffectToElement } from '../reactivity'
 
 /**
  * Lie une propriété d'élément à un signal
@@ -25,7 +25,7 @@ export function bindProperty(
     transform,
   }
 
-  return effect(() => {
+  return bindEffectToElement(element, () => {
     const value = binding.signal()
     const transformedValue = binding.transform 
       ? binding.transform(value)
@@ -50,7 +50,7 @@ export function bindProperty(
       // Propriété standard
       ;(element as any)[property] = transformedValue
     }
-  }).destroy
+  })
 }
 
 /**

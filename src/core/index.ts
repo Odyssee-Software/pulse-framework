@@ -180,6 +180,6 @@ export function createApp(rootSelector?: string | Element): PulseApp {
 }
 
 // Réexporter les fonctions utilitaires
-export { signal, computed, effect } from '@/reactivity'
-export { bindProperty, bindEvent, bindConditional, bindList } from '@/dom'
-export * from '@/utils'
+export { signal, computed, effect, bindEffectToElement } from '../reactivity'
+export { bindProperty, bindEvent, bindConditional, bindList } from '../dom'
+export * from '../utils'
