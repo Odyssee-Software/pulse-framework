@@ -18,6 +18,7 @@ export function bindProperty(
   signalOrComputed: Signal | Computed,
   transform?: (value: any) => any
 ): () => void {
+  
   const binding: ElementBinding = {
     element,
     property,

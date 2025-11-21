@@ -21,7 +21,9 @@ incrementBtn.addEventListener('click', () => {
 });
 ```
 
-**Avec Pulse Framework :**
+**Avec Pulse Framework (3 approches possibles) :**
+
+### Approche 1 : Objets Déclaratifs
 
 ```javascript
 import { signal, render } from 'pulse-framework';
@@ -50,6 +52,25 @@ const counterApp = render({
 });
 ```
 
+### Approche 2 : HTML Template Literals ⭐ (Nouveau !)
+
+```javascript
+import { signal, render } from 'pulse-framework';
+
+const count = signal(0);
+
+const counterApp = render.html`
+  <div>
+    <span>${count}</span>
+    <button onclick="${() => count(count() + 1)}">
+      Incrémenter
+    </button>
+  </div>
+`;
+```
+
+**🎯 Le meilleur des deux mondes :** la familiarité du HTML avec la puissance de la réactivité !
+
 ## Installation
 
 ```bash
@@ -58,7 +79,7 @@ npm install pulse-framework
 
 ## Premier Exemple : Compteur Simple
 
-### Version DOM Vanilla (40 lignes)
+### Version DOM Vanilla (40 lignes de complexité)
 
 ```html
 <div id="app">
@@ -76,7 +97,7 @@ npm install pulse-framework
 ```
 
 ```javascript
-// Beaucoup de boilerplate...
+// Beaucoup de boilerplate et de risques d'erreurs...
 let count = 0;
 
 const counterEl = document.getElementById('counter');
@@ -98,6 +119,124 @@ incrementBtn.addEventListener('click', () => {
 });
 
 decrementBtn.addEventListener('click', () => {
+  count--;
+  updateAll(); // Obligé de se rappeler !
+});
+
+resetBtn.addEventListener('click', () => {
+  count = 0;
+  updateAll(); // Obligé de se rappeler !
+});
+
+updateAll(); // Et même l'init !
+```
+
+### Version Pulse Framework - Approche Objets (15 lignes)
+
+```javascript
+import { signal, computed, render } from 'pulse-framework';
+
+function createCounter() {
+  const count = signal(0);
+  const doubled = computed(() => count() * 2);
+  const sign = computed(() => {
+    const value = count();
+    return value > 0 ? '➕' : value < 0 ? '➖' : '→';
+  });
+
+  return render({
+    tag: 'div',
+    children: [
+      {
+        tag: 'div',
+        children: [
+          {
+            tag: 'span',
+            properties: { textContent: count } // ✨ Auto-sync
+          },
+          {
+            tag: 'button',
+            properties: { textContent: '+' },
+            events: { click: () => count(count() + 1) }
+          },
+          {
+            tag: 'button', 
+            properties: { textContent: '-' },
+            events: { click: () => count(count() - 1) }
+          },
+          {
+            tag: 'button',
+            properties: { textContent: 'Reset' },
+            events: { click: () => count(0) }
+          }
+        ]
+      },
+      {
+        tag: 'div',
+        children: [
+          {
+            tag: 'p',
+            children: [
+              'Double: ',
+              {
+                tag: 'span',
+                properties: { textContent: doubled } // ✨ Auto-sync
+              }
+            ]
+          },
+          {
+            tag: 'p', 
+            children: [
+              'Signe: ',
+              {
+                tag: 'span',
+                properties: { textContent: sign } // ✨ Auto-sync
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  });
+}
+```
+
+### Version Pulse Framework - HTML Template Literals ⭐ (8 lignes !)
+
+```javascript
+import { signal, computed, render } from 'pulse-framework';
+
+function createCounter() {
+  const count = signal(0);
+  const doubled = computed(() => count() * 2);
+  const sign = computed(() => {
+    const value = count();
+    return value > 0 ? '➕' : value < 0 ? '➖' : '→';
+  });
+
+  return render.html`
+    <div>
+      <div>
+        <span>${count}</span>
+        <button onclick="${() => count(count() + 1)}">+</button>
+        <button onclick="${() => count(count() - 1)}">-</button>
+        <button onclick="${() => count(0)}">Reset</button>
+      </div>
+      <div>
+        <p>Double: <span>${doubled}</span></p>
+        <p>Signe: <span>${sign}</span></p>
+      </div>
+    </div>
+  `;
+}
+```
+
+### Utilisation (identique pour toutes les approches)
+
+```javascript
+// Utilisation
+document.getElementById('app').appendChild(createCounter());
+```
   count--;
   updateAll(); // Obligé de se rappeler !
 });
@@ -197,7 +336,81 @@ document.getElementById('app').appendChild(createCounter());
 - ❌ DOM vanilla : Code éparpillé, logique métier mélangée avec la UI
 - ✅ Pulse : Structure claire, séparation logique
 
-### 4. **Performance**
+### 4. **Choix de Syntaxe**
+- 🎯 **Objets déclaratifs** : Parfait pour les structures complexes, auto-complétion TypeScript
+- 🎯 **HTML template literals** : Familier pour les développeurs HTML/CSS, plus concis
+
+### 5. **Performance**
+- ❌ DOM vanilla : Updates non optimisés, souvent trop fréquents
+- ✅ Pulse : Seulement les éléments qui ont vraiment changé
+
+## Quand Utiliser Quelle Approche ?
+
+### HTML Template Literals `render.html` ⭐
+```javascript
+// ✅ Parfait pour :
+// - Développeurs habitués à HTML/CSS
+// - Prototypage rapide
+// - Composants avec beaucoup de markup
+// - Migration depuis du HTML existant
+
+const myComponent = render.html`
+  <article class="card">
+    <h2>${title}</h2>
+    <p>${description}</p>
+    <button onclick="${handleClick}">Action</button>
+  </article>
+`;
+```
+
+### Objets Déclaratifs `render({})`
+```javascript
+// ✅ Parfait pour :
+// - TypeScript strict avec auto-complétion
+// - Logique conditionnelle complexe
+// - Composants très dynamiques
+// - Quand vous préférez la programmation objet
+
+const myComponent = render({
+  tag: 'article',
+  attributes: { class: 'card' },
+  children: [
+    { tag: 'h2', properties: { textContent: title }},
+    { tag: 'p', properties: { textContent: description }},
+    { 
+      tag: 'button', 
+      properties: { textContent: 'Action' },
+      events: { click: handleClick }
+    }
+  ]
+});
+```
+
+### Combinaison des Deux
+```javascript
+// ✅ Vous pouvez même mélanger !
+function createComplexComponent() {
+  const header = render.html`
+    <header class="component-header">
+      <h1>${title}</h1>
+    </header>
+  `;
+  
+  const dynamicContent = render({
+    tag: 'main',
+    children: items().map(item => render.html`
+      <div class="item">${item.name}</div>
+    `)
+  });
+  
+  return render.html`
+    <div class="complex-component">
+      ${header}
+      ${dynamicContent}
+    </div>
+  `;
+}
+```
 - ❌ DOM vanilla : Vous devez optimiser manuellement (éviter les mises à jour inutiles)
 - ✅ Pulse : Optimisations automatiques, mise à jour uniquement si la valeur change
 

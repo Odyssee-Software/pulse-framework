@@ -1,4 +1,6 @@
 import type { Signal, Subscriber, Unsubscribe } from '../types'
+import { registerNode, GraphRegistry } from '../debug'
+import { schedule } from '../scheduler'
 
 let currentEffect: (() => void) | null = null
 const effectStack: (() => void)[] = []
@@ -12,9 +14,11 @@ const cleanupRegistry = new FinalizationRegistry((cleanup: () => void) => {
 /**
  * Crée un signal réactif
  */
-export function signal<T>(initialValue: T): Signal<T> {
+export function signal<T>(initialValue: T, debugName?: string): Signal<T> {
   let value = initialValue
   const subscribers = new Set<Subscriber<T>>()
+  const scheduledNotifications = new Set<Subscriber<T>>()
+  let isNotifying = false
 
   function signalFn(): T
   function signalFn(newValue: T): void
@@ -35,9 +39,28 @@ export function signal<T>(initialValue: T): Signal<T> {
   }
 
   function notifySubscribers(): void {
+    if (isNotifying) return
+    
+    // Planifier la notification des subscribers
     for (const subscriber of subscribers) {
-      subscriber(value)
+      scheduledNotifications.add(subscriber)
     }
+    
+    schedule(() => {
+      if (isNotifying) return
+      isNotifying = true
+      
+      try {
+        const toNotify = [...scheduledNotifications]
+        scheduledNotifications.clear()
+        
+        for (const subscriber of toNotify) {
+          subscriber(value)
+        }
+      } finally {
+        isNotifying = false
+      }
+    })
   }
 
   function subscribe(subscriber: Subscriber<T>): Unsubscribe {
@@ -52,6 +75,15 @@ export function signal<T>(initialValue: T): Signal<T> {
   })
 
   signalFn.subscribe = subscribe
+  
+  // Instrumentation debug
+  if (GraphRegistry.enabled) {
+    const node = signalFn as any
+    node.isSignal = true
+    node.value = value
+    node.subs = subscribers
+    registerNode(node, 'signal', debugName)
+  }
 
   return signalFn as Signal<T>
 }
@@ -59,11 +91,12 @@ export function signal<T>(initialValue: T): Signal<T> {
 /**
  * Crée une valeur calculée réactive
  */
-export function computed<T>(computeFn: () => T) {
+export function computed<T>(computeFn: () => T, debugName?: string) {
   let value: T
   let isStale = true
   const subscribers = new Set<Subscriber<T>>()
   let dependencies = new Set<Unsubscribe>()
+  const deps = new Set<any>()
 
   function computedFn(): T {
     if (currentEffect) {
@@ -76,6 +109,7 @@ export function computed<T>(computeFn: () => T) {
         unsubscribe()
       }
       dependencies.clear()
+      deps.clear()
 
       // Calculer la nouvelle valeur et enregistrer les dépendances
       const previousEffect = currentEffect
@@ -113,6 +147,16 @@ export function computed<T>(computeFn: () => T) {
   })
 
   computedFn.subscribe = subscribe
+  
+  // Instrumentation debug
+  if (GraphRegistry.enabled) {
+    const node = computedFn as any
+    node.dirty = isStale
+    node.deps = deps
+    node.subs = subscribers
+    node.fn = computeFn
+    registerNode(node, 'computed', debugName)
+  }
 
   return computedFn as typeof computedFn & { readonly value: T }
 }
@@ -120,9 +164,10 @@ export function computed<T>(computeFn: () => T) {
 /**
  * Crée un effet qui s'exécute à chaque changement de ses dépendances
  */
-export function effect(effectFn: () => void | (() => void)) {
+export function effect(effectFn: () => void | (() => void), debugName?: string) {
   let cleanup: (() => void) | null = null
   let isActive = true
+  const deps = new Set<any>()
 
   function runEffect(): void {
     if (!isActive) return
@@ -156,6 +201,15 @@ export function effect(effectFn: () => void | (() => void)) {
       cleanup = null
     }
   }
+  
+  // Instrumentation debug
+  if (GraphRegistry.enabled) {
+    const node = runEffect as any
+    node.deps = deps
+    node.subs = new Set()
+    node.fn = effectFn
+    registerNode(node, 'effect', debugName)
+  }
 
   // Exécuter l'effet immédiatement
   runEffect()
@@ -170,10 +224,9 @@ export function effect(effectFn: () => void | (() => void)) {
 
 /**
  * Execute une fonction en batch pour éviter les mises à jour multiples
+ * Utilise le scheduler pour regrouper automatiquement les updates
  */
-export function batch(fn: () => void): void {
-  fn()
-}
+export { batch, flush } from '../scheduler'
 
 /**
  * Lie un effet à un élément DOM avec gestion automatique de la mémoire

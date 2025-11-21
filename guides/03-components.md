@@ -24,6 +24,8 @@ const myButton = createButton('Cliquez-moi', () => alert('Cliqué!'));
 
 ## Composants avec Pulse Framework
 
+### Approche 1 : Objets Déclaratifs
+
 ```javascript
 import { signal, computed, render } from 'pulse-framework';
 
@@ -48,7 +50,44 @@ function createButton({
     }
   });
 }
+```
 
+### Approche 2 : HTML Template Literals
+
+```javascript
+import { signal, computed, render } from 'pulse-framework';
+
+// Même composant, syntaxe HTML familière !
+function createButton({ 
+  text = signal("Button"),
+  onClick = () => {},
+  variant = signal('primary'),
+  disabled = signal(false)
+}) {
+  return render.html`
+    <button 
+      class="${computed(() => `btn btn-${variant()}`)}"
+      disabled="${disabled}"
+      onclick="${onClick}">
+      ${text}
+    </button>
+  `;
+}
+```
+
+### Comparaison des Approches
+
+| Aspect                 | Objets Déclaratifs            | HTML Template Literals     |
+| ---------------------- | ------------------------------ | -------------------------- |
+| **Familiarité** | Programmation objet            | HTML/CSS traditionnel      |
+| **TypeScript**   | Auto-complétion parfaite      | Bonne intégration         |
+| **Lisibilité**  | Structure claire               | Plus proche du HTML final  |
+| **Complexité**  | Meilleur pour logique complexe | Parfait pour markup simple |
+| **Migration**    | Depuis du code JS              | Depuis du HTML existant    |
+
+### Utilisation (identique pour les deux approches)
+
+```javascript
 // Utilisation dynamique et réactive
 const buttonText = signal("Cliquez-moi");
 const isDisabled = signal(false);
@@ -61,6 +100,138 @@ const myButton = createButton({
   },
   disabled: isDisabled
 });
+```
+
+## Exemples Pratiques avec Template Literals
+
+### Composant Card Simple
+
+```javascript
+function createCard({ title, content, actions = [] }) {
+  return render.html`
+    <div class="card">
+      <div class="card-header">
+        <h3>${title}</h3>
+      </div>
+      <div class="card-body">
+        ${content}
+      </div>
+      <div class="card-footer">
+        ${actions.map(action => render.html`
+          <button onclick="${action.handler}" class="${action.class || 'btn'}">
+            ${action.label}
+          </button>
+        `)}
+      </div>
+    </div>
+  `;
+}
+```
+
+### Composant Liste Réactive
+
+```javascript
+function createList({ items, onItemClick, emptyMessage = "Aucun élément" }) {
+  return render.html`
+    <div class="list-container">
+      ${computed(() => {
+        const itemsValue = items();
+        return itemsValue.length === 0 
+          ? render.html`<p class="empty-state">${emptyMessage}</p>`
+          : render.html`
+              <ul class="item-list">
+                ${itemsValue.map(item => render.html`
+                  <li onclick="${() => onItemClick(item)}" class="list-item">
+                    ${item.name || item}
+                  </li>
+                `)}
+              </ul>
+            `;
+      })}
+    </div>
+  `;
+}
+```
+
+### Formulaire Complexe
+
+```javascript
+function createForm({ onSubmit, validation = {} }) {
+  const formData = signal({
+    name: '',
+    email: '',
+    message: ''
+  });
+  
+  const errors = computed(() => {
+    const data = formData();
+    const errs = {};
+  
+    if (!data.name) errs.name = 'Nom requis';
+    if (!data.email.includes('@')) errs.email = 'Email invalide';
+    if (data.message.length < 10) errs.message = 'Message trop court';
+  
+    return errs;
+  });
+  
+  const isValid = computed(() => Object.keys(errors()).length === 0);
+  
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (isValid()) {
+      onSubmit(formData());
+    }
+  };
+  
+  return render.html`
+    <form onsubmit="${handleSubmit}" class="form">
+      <div class="form-group">
+        <label for="name">Nom</label>
+        <input 
+          type="text" 
+          id="name"
+          value="${formData().name}"
+          oninput="${(e) => formData({...formData(), name: e.target.value})}"
+          class="${computed(() => errors().name ? 'error' : '')}"
+        />
+        ${computed(() => errors().name ? render.html`
+          <span class="error-message">${errors().name}</span>
+        ` : '')}
+      </div>
+    
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input 
+          type="email" 
+          id="email"
+          value="${formData().email}"
+          oninput="${(e) => formData({...formData(), email: e.target.value})}"
+          class="${computed(() => errors().email ? 'error' : '')}"
+        />
+        ${computed(() => errors().email ? render.html`
+          <span class="error-message">${errors().email}</span>
+        ` : '')}
+      </div>
+    
+      <div class="form-group">
+        <label for="message">Message</label>
+        <textarea 
+          id="message"
+          value="${formData().message}"
+          oninput="${(e) => formData({...formData(), message: e.target.value})}"
+          class="${computed(() => errors().message ? 'error' : '')}"
+        ></textarea>
+        ${computed(() => errors().message ? render.html`
+          <span class="error-message">${errors().message}</span>
+        ` : '')}
+      </div>
+    
+      <button type="submit" disabled="${computed(() => !isValid())}" class="btn btn-primary">
+        Envoyer
+      </button>
+    </form>
+  `;
+}
 ```
 
 ## Exemple Pratique : Composant Counter
@@ -251,7 +422,7 @@ function createTodoList({ initialTodos = [], onTodosChange = null } = {}) {
           }
         ]
       },
-      
+    
       // Input pour nouvelle tâche
       {
         tag: 'div',
@@ -276,7 +447,7 @@ function createTodoList({ initialTodos = [], onTodosChange = null } = {}) {
           }
         ]
       },
-      
+    
       // Liste des tâches (rendu dynamique)
       {
         tag: 'div',
@@ -383,13 +554,13 @@ function createDashboard() {
         query: searchQuery,
         onSearch: (query) => searchQuery(query)
       }),
-      
+    
       createUserList({ 
         users: filteredUsers,
         selectedId: selectedUserId,
         onSelect: (id) => selectedUserId(id)
       }),
-      
+    
       createUserDetail({ 
         user: selectedUser,
         onUpdate: (updatedUser) => {
@@ -404,18 +575,22 @@ function createDashboard() {
 ## Avantages des Composants Pulse
 
 ### 1. **Simplicité**
+
 - Moins de code boilerplate
 - Logique métier claire et séparée
 
 ### 2. **Réactivité Automatique**
+
 - Synchronisation sans effort
 - Performance optimisée
 
 ### 3. **Composition Naturelle**
+
 - Signals partagés entre composants
 - Communication simple et robuste
 
 ### 4. **Maintenance Facile**
+
 - Code prévisible et testable
 - Debugging simple
 

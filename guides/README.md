@@ -10,7 +10,29 @@ Pulse Framework est un micro-framework réactif "DOM-first" conçu pour les dév
 npm install pulse-framework
 ```
 
-### Premier Exemple
+### Premier Exemple - Nouvelle Syntaxe HTML ⭐
+
+```javascript
+import { signal, computed, render } from 'pulse-framework';
+
+const count = signal(0);
+const doubled = computed(() => count() * 2);
+
+// HTML Template Literals - Le plus naturel !
+const app = render.html`
+  <div>
+    <p>Compteur: <span>${count}</span></p>
+    <p>Double: <span>${doubled}</span></p>
+    <button onclick="${() => count(count() + 1)}">
+      Incrémenter
+    </button>
+  </div>
+`;
+
+document.body.appendChild(app);
+```
+
+### Même Exemple - Syntaxe Objets (Alternative)
 
 ```javascript
 import { signal, computed, render } from 'pulse-framework';
@@ -40,6 +62,99 @@ const app = render({
 document.body.appendChild(app);
 ```
 
+## 📚 Guides Complets
+
+### Démarrage
+- **[01 - Getting Started](./01-getting-started.md)** : Installation, premier composant, concepts de base
+- **[02 - Signals & Computed](./02-signals-computed.md)** : Réactivité fine-grained, computed values, dependencies
+
+### Développement
+- **[03 - Components](./03-components.md)** : Architecture composants, props, lifecycle
+- **[04 - Advanced Patterns](./04-advanced-patterns.md)** : Patterns avancés, performance, debugging
+- **[05 - Migration Guide](./05-migration-guide.md)** : Migration depuis React, Vue, Solid
+
+### Outils et APIs
+- **[06 - JSX Usage](./06-jsx-usage.md)** : Guide complet JSX/TSX avec Pulse
+- **[07 - Debugging](./07-debugging.md)** : Outils de debug, visualisation du graphe réactif
+- **[08 - Scheduler & Batching](./08-scheduler-batching.md)** : Optimisation des updates, batching automatique ⚡
+- **[09 - Micro-DSL](./09-micro-dsl.md)** : Bindings déclaratifs HTML-first (alternative à JSX) 🎯
+
+## 🎯 Par Niveau
+
+### Débutant
+1. Getting Started
+2. Signals & Computed
+3. Components
+
+### Intermédiaire
+4. Advanced Patterns
+5. Migration Guide
+6. JSX Usage
+9. Micro-DSL
+
+### Avancé
+7. Debugging
+8. Scheduler & Batching
+
+## 🔍 Par Use Case
+
+**Je veux...**
+- Démarrer avec Pulse → [01 - Getting Started](./01-getting-started.md)
+- Comprendre la réactivité → [02 - Signals & Computed](./02-signals-computed.md)
+- Créer des composants → [03 - Components](./03-components.md)
+- Utiliser JSX → [06 - JSX Usage](./06-jsx-usage.md)
+- Utiliser du HTML natif → [09 - Micro-DSL](./09-micro-dsl.md)
+- Migrer depuis React/Vue → [05 - Migration Guide](./05-migration-guide.md)
+- Optimiser les performances → [04 - Advanced Patterns](./04-advanced-patterns.md) + [08 - Scheduler](./08-scheduler-batching.md)
+- Débugger mon app → [07 - Debugging](./07-debugging.md)
+
+## 📖 Ordre de Lecture Recommandé
+
+```
+01 Getting Started
+    ↓
+02 Signals & Computed
+    ↓
+03 Components
+    ↓
+06 JSX Usage (si vous utilisez JSX)
+ ou
+09 Micro-DSL (si vous préférez HTML natif)
+    ↓
+08 Scheduler & Batching (pour optimiser)
+    ↓
+04 Advanced Patterns
+    ↓
+07 Debugging (quand nécessaire)
+```
+
+## 💡 Tips de Navigation
+
+- Chaque guide est **standalone** : lisez dans l'ordre qui vous convient
+- Les **exemples** sont copiables-collables
+- Les guides incluent des **comparaisons** avec React, Vue, Solid
+- **08 - Scheduler** : Essentiel pour les apps avec beaucoup de mises à jour
+- **09 - Micro-DSL** : Alternative à JSX pour une approche HTML-first
+- Consultez **07 - Debugging** dès que vous rencontrez un problème
+
+Bon apprentissage ! 🚀
+
+document.body.appendChild(app);
+```
+
+## 🎯 Avantages Clés
+
+### HTML Template Literals
+- ✅ **Familier** : Syntaxe HTML que vous connaissez déjà
+- ✅ **Concis** : Moins de code, plus lisible
+- ✅ **Réactif** : `${signal}` se met à jour automatiquement
+- ✅ **Puissant** : `onclick="${handler}"` avec toute la logique JS
+
+### Objets Déclaratifs  
+- ✅ **TypeScript** : Auto-complétion et types stricts
+- ✅ **Structuré** : Parfait pour la logique complexe
+- ✅ **Prévisible** : Comportement explicite et contrôlé
+
 ## Guides Complets
 
 1. **[Guide de Démarrage](./01-getting-started.md)**
@@ -63,6 +178,28 @@ document.body.appendChild(app);
 4. **[Patterns Avancés](./04-advanced-patterns.md)**
    - Gestion d'état global (Store)
    - Formulaires avec validation
+   - Listes dynamiques et rendu conditionnel
+   - Performance et optimisations
+
+5. **[Guide de Migration](./05-migration-guide.md)**
+   - Depuis du code DOM vanilla
+   - Depuis jQuery
+   - Approche progressive
+   - Stratégies de migration
+
+6. **[JSX/TSX avec Pulse](./06-jsx-usage.md)** ⭐ NOUVEAU
+   - Configuration TypeScript
+   - Syntaxe JSX avec Pulse
+   - Composants réutilisables
+   - Différences avec React
+   - Best practices
+
+7. **[Debug du Graphe Réactif](./07-debugging.md)** 🔍 NOUVEAU
+   - Activation du mode debug
+   - Visualisation du graphe
+   - Traçage des propagations
+   - Outils de diagnostic
+   - Best practices
    - Routing SPA
    - Gestion async et loading states
 

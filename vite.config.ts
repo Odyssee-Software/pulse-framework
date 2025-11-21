@@ -9,15 +9,19 @@ export default defineConfig({
       include: ['src/**/*'],
       exclude: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
       insertTypesEntry: true,
-      rollupTypes: true
+      rollupTypes: false // Désactivé pour permettre plusieurs entrées
     })
   ],
   build: {
     lib: {
-      entry: resolve(fileURLToPath(new URL('.', import.meta.url)), 'src/index.ts'),
+      entry: {
+        index: resolve(fileURLToPath(new URL('.', import.meta.url)), 'src/index.ts'),
+        'jsx-runtime': resolve(fileURLToPath(new URL('.', import.meta.url)), 'src/jsx-runtime.ts')
+      },
       name: 'PulseFramework',
-      fileName: (format: string) => `index.${format === 'es' ? 'js' : 'umd.js'}`,
-      formats: ['es', 'umd']
+      fileName: (format: string, entryName: string) => 
+        `${entryName}.${format === 'es' ? 'js' : 'umd.js'}`,
+      formats: ['es']
     },
     rollupOptions: {
       output: {

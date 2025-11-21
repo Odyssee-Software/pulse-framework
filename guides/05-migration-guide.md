@@ -47,7 +47,75 @@ updateDisplay();
 ```
 
 #### Après (Migration Pulse) - Remplacement Direct
+
+**Option A : HTML Template Literals (recommandé pour migration)**
 ```javascript
+import { signal, computed, render } from 'pulse-framework';
+
+// Migration HTML : gardez votre structure existante !
+function migrateCounter() {
+  const count = signal(0);
+  const doubled = computed(() => count() * 2);
+
+  // Reprenez votre HTML existant et ajoutez la réactivité
+  const counterComponent = render.html`
+    <div>
+      <span id="count">${count}</span>
+      <button id="increment" onclick="${() => count(count() + 1)}">+</button>
+      <button id="decrement" onclick="${() => count(count() - 1)}">-</button>
+      <span id="doubled">${doubled}</span>
+    </div>
+  `;
+
+  // Remplacez l'ancienne section
+  const oldContainer = document.getElementById('counter-container');
+  oldContainer.replaceWith(counterComponent);
+}
+
+// Appelez la migration quand vous voulez
+migrateCounter();
+```
+
+**Option B : Objets Déclaratifs (pour restructuration complète)**
+```javascript
+import { signal, computed, render } from 'pulse-framework';
+
+function migrateCounterStructured() {
+  const count = signal(0);
+  const doubled = computed(() => count() * 2);
+
+  const counterComponent = render({
+    tag: 'div',
+    children: [
+      {
+        tag: 'span',
+        attributes: { id: 'count' },
+        properties: { textContent: count }
+      },
+      {
+        tag: 'button',
+        attributes: { id: 'increment' },
+        properties: { textContent: '+' },
+        events: { click: () => count(count() + 1) }
+      },
+      {
+        tag: 'button',
+        attributes: { id: 'decrement' },
+        properties: { textContent: '-' },
+        events: { click: () => count(count() - 1) }
+      },
+      {
+        tag: 'span',
+        attributes: { id: 'doubled' },
+        properties: { textContent: doubled }
+      }
+    ]
+  });
+
+  const oldContainer = document.getElementById('counter-container');
+  oldContainer.replaceWith(counterComponent);
+}
+```
 import { signal, computed, render } from 'pulse-framework';
 
 // Remplacer la section problématique
@@ -475,6 +543,241 @@ bridge.exposeSignal('currentUser', currentUser);
 // window.userCount.subscribe(count => console.log(count)) - pour s'abonner
 ```
 
+## Migration HTML Directe avec Template Literals ⭐
+
+### Cas d'Usage : Transformer du HTML Existant
+
+Si vous avez du HTML existant avec beaucoup de JavaScript pour la synchronisation, les template literals sont parfaits :
+
+#### Avant : HTML + JavaScript Vanilla
+```html
+<!-- Votre HTML existant -->
+<div class="user-profile">
+  <div class="avatar">
+    <img id="user-avatar" src="" alt="Avatar">
+  </div>
+  <div class="info">
+    <h2 id="user-name">Nom d'utilisateur</h2>
+    <p id="user-status">Statut</p>
+    <span id="user-score">0</span> points
+  </div>
+  <div class="actions">
+    <button id="edit-btn">Éditer</button>
+    <button id="save-btn" style="display: none;">Sauvegarder</button>
+  </div>
+</div>
+```
+
+```javascript
+// Votre JavaScript de synchronisation actuel
+let userData = {
+  name: 'Jean Dupont',
+  status: 'En ligne',
+  avatar: '/avatars/jean.jpg',
+  score: 1250
+};
+
+let editMode = false;
+
+function updateUserProfile() {
+  document.getElementById('user-name').textContent = userData.name;
+  document.getElementById('user-status').textContent = userData.status;
+  document.getElementById('user-avatar').src = userData.avatar;
+  document.getElementById('user-score').textContent = userData.score;
+  
+  document.getElementById('edit-btn').style.display = editMode ? 'none' : 'block';
+  document.getElementById('save-btn').style.display = editMode ? 'block' : 'none';
+}
+
+document.getElementById('edit-btn').addEventListener('click', () => {
+  editMode = true;
+  updateUserProfile(); // N'oubliez pas !
+});
+
+// ... Plus de listeners et d'appels à updateUserProfile()
+```
+
+#### Après : Migration Template Literals
+```javascript
+import { signal, computed, render } from 'pulse-framework';
+
+function createUserProfile() {
+  // Convertir les données en signals
+  const userData = signal({
+    name: 'Jean Dupont',
+    status: 'En ligne', 
+    avatar: '/avatars/jean.jpg',
+    score: 1250
+  });
+  
+  const editMode = signal(false);
+  
+  // Reprendre EXACTEMENT le même HTML avec la réactivité
+  return render.html`
+    <div class="user-profile">
+      <div class="avatar">
+        <img src="${computed(() => userData().avatar)}" alt="Avatar">
+      </div>
+      <div class="info">
+        <h2>${computed(() => userData().name)}</h2>
+        <p>${computed(() => userData().status)}</p>
+        <span>${computed(() => userData().score)}</span> points
+      </div>
+      <div class="actions">
+        <button 
+          onclick="${() => editMode(true)}"
+          style="${computed(() => editMode() ? 'display: none;' : 'display: block;')}">
+          Éditer
+        </button>
+        <button 
+          onclick="${() => editMode(false)}"
+          style="${computed(() => editMode() ? 'display: block;' : 'display: none;')}">
+          Sauvegarder
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// Remplacer l'ancien HTML
+const oldProfile = document.querySelector('.user-profile');
+const newProfile = createUserProfile();
+oldProfile.replaceWith(newProfile);
+```
+
+### Avantages de cette Approche
+
+| Aspect | Avant (Vanilla) | Après (Template Literals) |
+|--------|-----------------|---------------------------|
+| **Lignes de code** | ~50 lignes | ~25 lignes |
+| **Synchronisation** | Manuelle, error-prone | Automatique |
+| **HTML** | Séparé du JS | Intégré, cohérent |
+| **Debugging** | Difficile à tracer | Flux réactif clair |
+| **Maintenance** | Fragile | Robuste |
+
+### Cas Complexe : Formulaire Dynamique
+
+```javascript
+// Migration d'un formulaire avec validation
+function migrateComplexForm() {
+  const formData = signal({
+    name: '',
+    email: '',
+    age: 0,
+    preferences: []
+  });
+  
+  const errors = computed(() => {
+    const data = formData();
+    const errs = {};
+    
+    if (!data.name) errs.name = 'Nom requis';
+    if (!data.email.includes('@')) errs.email = 'Email invalide';
+    if (data.age < 18) errs.age = 'Âge minimum 18 ans';
+    
+    return errs;
+  });
+  
+  const isValid = computed(() => Object.keys(errors()).length === 0);
+  
+  // Reprendre votre HTML existant + réactivité
+  return render.html`
+    <form class="dynamic-form">
+      <div class="form-group ${computed(() => errors().name ? 'has-error' : '')}">
+        <label>Nom</label>
+        <input 
+          type="text" 
+          value="${computed(() => formData().name)}"
+          oninput="${(e) => formData({...formData(), name: e.target.value})}"
+        />
+        ${computed(() => errors().name ? render.html`
+          <span class="error">${errors().name}</span>
+        ` : '')}
+      </div>
+      
+      <div class="form-group ${computed(() => errors().email ? 'has-error' : '')}">
+        <label>Email</label>
+        <input 
+          type="email" 
+          value="${computed(() => formData().email)}"
+          oninput="${(e) => formData({...formData(), email: e.target.value})}"
+        />
+        ${computed(() => errors().email ? render.html`
+          <span class="error">${errors().email}</span>
+        ` : '')}
+      </div>
+      
+      <button 
+        type="submit" 
+        disabled="${computed(() => !isValid())}"
+        class="btn ${computed(() => isValid() ? 'btn-primary' : 'btn-disabled')}">
+        Soumettre
+      </button>
+    </form>
+  `;
+}
+```
+
+## Bridge Legacy avec Template Literals
+
+Pour les migrations progressives, vous pouvez créer des ponts entre l'ancien code et Pulse :
+
+```javascript
+class HTMLMigrationBridge {
+  constructor() {
+    this.signals = new Map();
+  }
+  
+  // Exposer un signal comme HTML réactif
+  createReactiveElement(selector, signal, template) {
+    const element = document.querySelector(selector);
+    
+    // Remplacer par un composant Pulse
+    const reactiveComponent = render.html`
+      <div class="migrated-component">
+        ${computed(() => template(signal()))}
+      </div>
+    `;
+    
+    element.replaceWith(reactiveComponent);
+    
+    return signal; // Retourner pour manipulation legacy
+  }
+  
+  // Synchroniser avec des inputs existants
+  bindExistingInput(inputSelector, signal) {
+    const input = document.querySelector(inputSelector);
+    
+    // Synchronisation bidirectionnelle
+    input.value = signal();
+    input.addEventListener('input', (e) => signal(e.target.value));
+    
+    // Mettre à jour l'input quand le signal change
+    effect(() => {
+      if (input.value !== signal()) {
+        input.value = signal();
+      }
+    });
+  }
+}
+
+// Utilisation pour migration progressive
+const bridge = new HTMLMigrationBridge();
+
+// Créer un signal
+const userName = signal('Jean Dupont');
+
+// Remplacer un élément existant par du HTML réactif
+bridge.createReactiveElement(
+  '#user-display', 
+  userName,
+  (name) => `<h1>Bonjour ${name}!</h1>`
+);
+
+// Lier un input existant
+bridge.bindExistingInput('#name-input', userName);
+```
+
 ## Bénéfices Immédiats de la Migration
 
 1. **Réduction de 50-80% du code** de synchronisation UI
@@ -482,5 +785,6 @@ bridge.exposeSignal('currentUser', currentUser);
 3. **Performance améliorée** grâce aux optimisations automatiques
 4. **Code plus maintenable** et prévisible
 5. **Debugging facilité** avec des flux de données clairs
+6. **Transition naturelle** : gardez votre HTML, ajoutez la réactivité
 
 La migration peut se faire progressivement, composant par composant, sans risquer de casser l'application existante.
