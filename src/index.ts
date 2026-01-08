@@ -86,7 +86,7 @@ export const __DEBUG__ = {
 declare namespace Pulse {
   type Fn<PROPS extends Record<string, any> = Record<string, any>> = (
     props: PROPS
-  ) => Pulse.JSX.Element | null | string
+  ) => Pulse.JSX.Element | null
 
   namespace JSX {
     type Element = {
