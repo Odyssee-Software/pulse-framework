@@ -1,6 +1,6 @@
 {
   "name": "pulse-framework",
-  "version": "0.1.0-rc.0",
+  "version": "0.1.0-rc.1",
   "description": "Micro-framework DOM-first réactif, \"no diff, only sync\"",
   "type": "module",
   "main": "./dist/index.js",
