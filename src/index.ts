@@ -95,7 +95,7 @@ declare namespace Pulse {
       properties?: Record<string, any>
       events?: Record<string, any>
       children?: any[]
-    } & (HTMLElement | DocumentFragment)
+    } & (globalThis.Element | globalThis.DocumentFragment)
 
     interface IntrinsicElements {
       a: any
